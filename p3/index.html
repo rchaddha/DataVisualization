@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+    <title>DataVis'21 p3</title>
+    <style>
+      body {
+        background-color: #111;
+        color: #eee; /* i.e., non-SVG text color */
+      }
+      svg text {
+        fill: #eee; /* SVG text color */
+      }
+      /* created with help from https://grid.layoutit.com/ */
+      #grid-container {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        grid-template-rows: 2fr 7fr 1fr;
+        gap: 0px 0px;
+        grid-template-areas:
+          'bal bal' /* these names only matter for the "grid-area" properties below */
+          'map scat'
+          'time mode';
+        align-items: center;
+        justify-items: center;
+      }
+      #cell-balance {
+        grid-area: bal;
+        /* make this div always fill out the containing cell */
+        width: 100%;
+        height: 100%;
+      }
+      #cell-us-map {
+        grid-area: map;
+      }
+      #cell-scatter {
+        grid-area: scat;
+      }
+      #cell-timeline {
+        grid-area: time;
+      }
+      #cell-mode {
+        grid-area: mode;
+      }
+      /* end of specifying the CSS grid layout */
+      .state {
+        /* the per-state hexagons */
+        stroke-width: 0;
+      }
+      .stateID {
+        /* the state abbreviations inside each hex */
+        font-size: 12px;
+        font-family: sans-serif;
+        /* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/text-anchor */
+        text-anchor: middle;
+        /* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/dominant-baseline */
+        dominant-baseline: middle;
+        /* https://developer.mozilla.org/en-US/docs/Web/CSS/text-shadow */
+        text-shadow: -1px -1px 3px #000, 0px -1px 3px #000, 1px -1px 3px #000, -1px 0px 3px #000,
+          1px 0px 3px #000, -1px 1px 3px #000, 0px 1px 3px #000, 1px 1px 3px #000;
+      }
+      #cell-balance text, /* text in the balance bars, */
+      #scat-axes text, /* and identifying X and Y axes of the scatterplot, */
+      #mode-form, /* and the radiobutton labels underneath it, */
+      #timeline-label /* and label showing the year on the timeline */ {
+        font-size: 16px;
+        font-family: sans-serif;
+        text-anchor: middle;
+      }
+      #cell-balance text {
+        font-size: 18px;
+        dominant-baseline: middle;
+      }
+      #y-axis {
+        dominant-baseline: text-bottom;
+      }
+      #x-axis {
+        dominant-baseline: hanging;
+      }
+      #scat-canvas {
+        outline: #888 solid 1px;
+      }
+      #tooltip-map {
+        position: absolute;
+        text-align: center;
+        padding: .5rem;
+        background: #FFFFFF;
+        color: #313639;
+        border: 1px solid #313639;
+        border-radius: 8px;
+        pointer-events: none;
+        font-size: 1.3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The way this sets ids for every single element, and the way those ids are named,
+    is likely not following "best practices"; alas -->
+    <div id="grid-container">
+      <div id="cell-balance"><!-- svg #balance will be in here --></div>
+      <div id="cell-us-map"><svg id="us-map"></svg></div>
+      <div id="cell-scatter" style="position: relative">
+        <!-- thanks http://stackoverflow.com/questions/24041111/can-i-place-a-svg-image-element-on-top-a-canvas-element -->
+        <canvas id="scat-canvas"></canvas>
+        <svg id="scat-axes" style="position: absolute">
+          <text id="y-axis">#y-axis</text>
+          <text id="x-axis">#x-axis</text>
+        </svg>
+        <svg id="scat-marks-container" style="position: absolute">
+          <g id="scat-marks"></g>
+        </svg>
+      </div>
+      <div id="cell-timeline">
+        <form id="timeline-form" name="timeline-form">
+          <!-- https://bl.ocks.org/d3noob/2cb9427ae371eee76804945146b066b3 -->
+          <label id="timeline-label" for="timeline" style="text-align: right">
+            Election Year <span id="year">????</span>
+          </label>
+          <input type="range" min="0" max="0" id="timeline" name="year" style="width: 30em" />
+        </form>
+      </div>
+      <div id="cell-mode">
+        <form id="mode-form" name="mode-form"></form>
+      </div>
+    </div>
+
+    <script src="d3.v6.js"></script>
+    <script type="module">
+      import * as hex from './hexmap.js';
+      import * as p3 from './p3.js';
+      hex.resize('us-map'); // set size of SVG to contain US map, based on size of single hex
+      /* make vote bars; has to follow making US map so that grid cell sizes are finalized */
+      p3.balanceInit('cell-balance', 'balance');
+      p3.canvasInit('scat-canvas'); // initialize the canvas that displays the colormap
+      p3.scatLabelPos(); // create the scatterplot (axis labels, and position over canvas)
+      // read the data and do everything that depends on it
+      d3.csv('data/votes.csv').then((_data) => {
+        // NOTE: your code should *NOT* hardcode the election years in the data
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
+        const yearsSet = new Set(
+          _data.columns // make a Set out of
+            .filter((c) => c.includes('_')) // selecting the year columns
+            .map((c) => c.split('_')[1]) // and extracting the year
+        );
+        const years = [...yearsSet].sort().map((y) => +y); // ensure sorted and numeric
+        _data.map(hex.add); // add per-state hex geometry
+        hex.create('us-map', 'stateID', _data); // create hexmap of all states
+        p3.scatMarksInit('scat-marks', _data); // initialize scatterplot marks
+        p3.formsInit('timeline', 'year', years, 'mode-form'); // set up timeline and mode buttons
+        const data = p3.dataProc(_data, years); // finish with data post-processor
+        /* NOTE as a sneaky way to keep more info in scope, we put some important variables
+        in a little "p3" object (no actual relation to the p3.js module name) and hang it
+        off the top-level "window" object, which is in scope everywhere */
+        window.p3 = {
+          // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Object_initializer#object_literal_notation_vs_json
+          _data,
+          data,
+          years,
+          /* extra hack: name the candidates (doesn't fit in csv file, and likely listing lots
+          more candidates than matter for years covered in the data file) */
+          name: {
+            // in 1968 George Wallace got 46 Electoral Votes which would complicate things
+            1972: { D: 'George McGovern', R: 'Richard Nixon' },
+            1976: { D: 'Jimmy Carter', R: 'Gerald Ford' },
+            1980: { D: 'Jimmy Carter', R: 'Ronald Reagan' },
+            1984: { D: 'Walter Mondale', R: 'Ronald Reagan' },
+            1988: { D: 'Michael Dukakis', R: 'George H. W. Bush' },
+            1992: { D: 'Bill Clinton', R: 'George H. W. Bush' }, // Ross Perot got 0 EV
+            1996: { D: 'Bill Clinton', R: 'Bob Dole' }, // Ross Perot got 0 EV
+            2000: { D: 'Al Gore', R: 'George W. Bush' },
+            2004: { D: 'John Kerry', R: 'George W. Bush' },
+            2008: { D: 'Barack Obama', R: 'John McCain' },
+            2012: { D: 'Barack Obama', R: 'Mitt Romney' },
+            2016: { D: 'Hillary Clinton', R: 'Donald Trump' },
+            2020: { D: 'Joe Biden', R: 'Donald Trump' },
+          },
+        };
+        p3.init(); // any final initializations before interactions start
+
+        /* simulate selecting a year on the timeline (two steps) */
+        // document['timeline-form'].year.value = 2020;
+        // document.getElementById('timeline').click();
+        /* simulate clicking on one of the mode radio buttons (one step) */
+        // document.getElementById('LVA').click();
+      });
+    </script>
+  </body>
+</html>
