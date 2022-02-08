@@ -3,6 +3,8 @@ Some examples of data visualizations that I have created.
 
 P1: This project introduced me to the basics of using D3 to create and transform SVGs that visualize some given data.
 
+P2: This project was centered around recreating Florence Nightingale's visualization in D3, and then creating a different effective visualization with the Nightingale's data.
+
 P3:
 This project is about visualizing US presidential election data, with interactive control of a timeline, and how the states are colored according to their votes. There are three main modes:
 
