@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<!-- absolutely nothing about this file is "correct" in the sense that you should
+use it for your work; just copy whatever you find useful, else ignore it -->
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <title>DataVis'21 p2</title>
+  <style>
+    :root {
+      /* https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties */
+      --fn-blue: rgb(200, 220, 240);
+      --fn-pink: rgb(225, 195, 190);
+      --fn-gray: rgb(160, 160, 160);
+      --fn-dark-blue: rgb(98, 133, 168);
+      --fn-dark-pink: rgb(157, 102, 93);
+      --fn-dark-gray: rgb(16, 16, 16);
+    }
+    .zbar {
+      fill: var(--fn-blue);
+    }
+    .wbar {
+      fill: var(--fn-pink);
+    }
+    .obar {
+      fill: var(--fn-gray);
+    }
+    .zbar-outline{
+      fill: none;
+      stroke: var(--fn-dark-blue);
+      stroke-width: 1.2;
+    }
+    .wbar-outline{
+      fill: none;
+      stroke: var(--fn-dark-pink);
+      stroke-width: 1.2;
+    }
+    .obar-outline{
+      fill: none;
+      stroke: var(--fn-dark-gray);
+      stroke-width: 1.2;
+    }
+    .glabel {
+      font-size: 20px;
+      font-family: Verdana,Geneva,sans-serif;
+    }
+    .monthLabels{
+      font-size: 9.5px;
+      font-family: Verdana,Geneva,sans-serif;
+      text-anchor: "middle";
+    }
+    #part2 .tick text {
+      font-size: 70%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="part1div">
+
+  </div>
+  <hr>
+  <div id="part2div">
+  </div>
+</body>
+
+<!-- D3 is unfortunately not readily available as an ES6 module -->
+<script src="./d3.v6.js"></script>
+
+<script type="module">
+  /* 1.828 is the aspect ratio of the original
+  (https://en.wikipedia.org/wiki/File:Nightingale-mortality.jpg)
+  so that is an appropriate aspect ratio for the part1 recreation.
+  This part2 uses the same aspect ratio, but that is not a requirement for your part2 */
+  let aspect = 1.828, width = 1100, height = Math.round(width / aspect);
+  [1, 2].map(i => d3.select(`#part${i}div`)
+    .append('svg')
+    .attr('id', `part${i}`)
+    .attr('width', width)
+    .attr('height', height));
+
+    import * as p2 from './sample.js';
+  d3.csv('nightingale.csv').then(_data => {
+    console.log('original data:', _data);
+    const data = p2.dataProc(_data);
+    console.log('processed data:',data);
+    p2.part1('part1', data);
+    p2.part2('part2', data);
+  });
+
+  //p2.practice_arc('part1');
+
+
+  
+</script>
+
+</html>
