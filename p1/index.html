@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <title>DataVis'21 p1</title>
+  <style>
+    .bar {
+      fill: #7af;
+    }
+    .dot {
+      fill: #289;
+    }
+    .stick {
+      stroke: #522;
+      stroke-width: 20;
+    }
+    .outlineCircle {
+      fill: #afa;
+      stroke: #948;
+    }
+    .sizedCircle {
+      fill: #990;
+    }
+    .slope line {
+      stroke: #4ee;
+      stroke-width: 15;
+    }
+  </style>
+</head>
+
+<!-- The empty document will be later populated with SVG objects -->
+<body>
+</body>
+
+<!-- D3 is unfortunately not readily available as an ES6 module -->
+<script src="./d3.v6.js"></script>
+
+<script type="module">
+  import * as util from './util.js';
+  // All the code you write for this project is in the "p1" module
+  import * as p1 from './p1.js';
+  const dataRange = [0,10];
+  const dataLen = 9;
+  const padding = 0.1;
+  const data = util.dataGen(dataRange, dataLen, false);
+  /* Set up the margins. This looks pretty clunky but it is actually
+     idiomatic D3 https://observablehq.com/@d3/margin-convention */
+  const margin = { top: 30, left: 30, right: 10, bottom: 20 },
+    width = 900 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+  /* create x and y scales (from your code).
+    NOTE: Until xScaleGen and yScaleGen are finished, the page will fail to load,
+    with a console error like: Uncaught TypeError: Cannot read property 'ticks' of null */
+  const xScale = p1.xScaleGen(data, width, padding);
+  const yScale = p1.yScaleGen(dataRange, height);
+  /* not so idiomatic D3: make a "layout" object to contain margin, width, height,
+     and the two  scales, using object initializer shorthand
+     https://developer.mozilla.org/en-US/docs/Web/J aScript/Reference/Operators/Object_initializer */
+  const layout = { margin, width, height, xScale, yScale };
+
+  // This bar chart should work as soon as you finish xScaleGen and yScaleGen
+  let svg = util.svgAppend("bars", layout);
+  p1.bars(svg, data, layout);
+
+  // The remaining visualizations will be blank until you finish the corresponding functions.
+  svg = util.svgAppend("dots", layout);
+  p1.dots(svg, data, layout, layout.xScale.bandwidth() / 8);
+
+  svg = util.svgAppend("sticks", layout);
+  p1.sticks(svg, data, layout);
+
+  svg = util.svgAppend("outlineCircles", layout, xScale.bandwidth());
+  p1.outlineCircles(svg, data, dataRange, layout);
+
+  svg = util.svgAppend("sizedCircles", layout, xScale.bandwidth());
+  p1.sizedCircles(svg, data, dataRange, layout);
+
+  svg = util.svgAppend("coloredCircles", layout, xScale.bandwidth());
+  p1.coloredCircles(svg, data, dataRange, layout);
+
+  svg = util.svgAppend("slopes", layout, xScale.bandwidth());
+  p1.slopes(svg, data, dataRange, layout);
+</script>
+
+</html>
